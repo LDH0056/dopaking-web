@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>도파킹 가챠 재고 조회</title>
+<style>
+  :root { --bg:#0e0f13; --card:#181a21; --card2:#1f2230; --line:#2a2e3c; --txt:#e8eaf0; --sub:#9aa0b4;
+          --s:#ffd166; --last:#ff5470; --ok:#3ddc97; --warn:#ffb020; --dead:#5a5f70; --accent:#7c5cff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:-apple-system,"Segoe UI",Roboto,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; }
+  header { position:sticky; top:0; z-index:5; background:rgba(14,15,19,.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--line); padding:14px 18px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  header h1 { font-size:17px; margin:0; letter-spacing:.3px; }
+  header h1 small { color:var(--sub); font-weight:400; font-size:12px; margin-left:6px; }
+  .spacer { flex:1; }
+  button { background:var(--card2); color:var(--txt); border:1px solid var(--line); border-radius:9px; padding:8px 14px; font-size:13px; cursor:pointer; transition:.15s; }
+  button:hover { border-color:#3a4156; background:#262a3a; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  button.primary:hover { filter:brightness(1.1); }
+  label.toggle { font-size:12px; color:var(--sub); display:flex; align-items:center; gap:6px; cursor:pointer; }
+  main { max-width:1100px; margin:0 auto; padding:18px; }
+  .meta { color:var(--sub); font-size:12px; margin:2px 0 16px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:14px; }
+  .prog { background:var(--card); border:1px solid var(--line); border-radius:14px; overflow:hidden; cursor:pointer; transition:.15s; display:flex; flex-direction:column; }
+  .prog:hover { border-color:var(--accent); transform:translateY(-2px); }
+  .prog .thumb { width:100%; aspect-ratio:16/9; object-fit:cover; background:#0a0b0e; display:block; }
+  .prog .body { padding:12px 14px 14px; flex:1; display:flex; flex-direction:column; }
+  .prog .tags { display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap; }
+  .prog .name { font-size:14px; font-weight:600; line-height:1.4; margin:0 0 10px; min-height:38px; }
+  .rec { color:var(--last); font-weight:800; font-size:13px; white-space:nowrap; }
+  .row { display:flex; justify-content:space-between; align-items:center; font-size:12px; margin:4px 0; }
+  .row .k { color:var(--sub); }
+  .sgrade { color:var(--s); font-weight:700; }
+  .lastgrade { color:var(--last); font-weight:700; }
+  .bar { height:6px; background:#0a0b0e; border-radius:4px; overflow:hidden; margin-top:8px; }
+  .bar > i { display:block; height:100%; background:linear-gradient(90deg,var(--accent),var(--ok)); }
+  .badge { font-size:10px; padding:2px 7px; border-radius:999px; border:1px solid var(--line); color:var(--sub); white-space:nowrap; }
+  .badge.live { color:var(--ok); border-color:var(--ok); }
+  .badge.cat { color:var(--sub); }
+  .badge.event { color:var(--s); border-color:var(--s); }
+  .badge.soon { color:var(--warn); border-color:var(--warn); }
+
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; z-index:20; }
+  .overlay.show { display:block; }
+  .sheet { position:fixed; inset:24px; max-width:880px; margin:0 auto; background:var(--bg); border:1px solid var(--line); border-radius:16px; z-index:21; display:none; flex-direction:column; overflow:hidden; }
+  .sheet.show { display:flex; }
+  .sheet .top { padding:16px 18px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:center; }
+  .sheet .top h2 { font-size:16px; margin:0; flex:1; line-height:1.4; }
+  .sheet .scroll { overflow:auto; padding:18px; }
+  .summary { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+  .stat { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 14px; min-width:100px; }
+  .stat .v { font-size:20px; font-weight:700; }
+  .stat .l { font-size:11px; color:var(--sub); margin-top:2px; }
+  .gradeBlock { margin:16px 0; }
+  .gradeTitle { font-size:13px; font-weight:700; margin:0 0 10px; display:flex; align-items:center; gap:10px; }
+  .pill { font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; }
+  .pill.S { background:rgba(255,209,102,.15); color:var(--s); border:1px solid var(--s); }
+  .pill.LAST { background:rgba(255,84,112,.15); color:var(--last); border:1px solid var(--last); }
+  .pill.N { background:rgba(154,160,180,.12); color:var(--sub); border:1px solid var(--line); }
+  .gbar { flex:1; height:7px; background:#0a0b0e; border-radius:5px; overflow:hidden; max-width:200px; }
+  .gbar > i { display:block; height:100%; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; }
+  .citem { display:flex; gap:10px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:9px; position:relative; }
+  .citem.sold { opacity:.45; }
+  .citem img { width:54px; height:54px; object-fit:cover; border-radius:7px; background:#0a0b0e; flex-shrink:0; }
+  .citem .n { font-weight:600; line-height:1.3; font-size:12px; }
+  .citem .num { color:var(--sub); font-size:10px; margin-top:2px; }
+  .citem .rem { font-size:13px; font-weight:700; margin-top:4px; }
+  .citem .rem.has { color:var(--ok); }
+  .citem .rem.none { color:var(--dead); }
+  .citem .coin { font-size:11px; font-weight:700; color:var(--s); margin-top:3px; }
+  .soldtag { position:absolute; top:7px; right:7px; font-size:9px; font-weight:700; color:#fff; background:var(--dead); padding:2px 6px; border-radius:5px; }
+  .gsearch { width:100%; margin:0 0 14px; padding:9px 12px; background:var(--card); border:1px solid var(--line); border-radius:9px; color:var(--txt); font-size:13px; }
+  .loading,.empty { color:var(--sub); text-align:center; padding:50px 0; font-size:14px; }
+  .err { color:var(--last); }
+  .close { font-size:20px; line-height:1; padding:6px 12px; }
+  .ret { font-weight:700; }
+  .ret.good { color:var(--ok); }
+  .ret.mid { color:var(--txt); }
+  .ret.low { color:var(--warn); }
+  .ret.na { color:var(--sub); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🃏 도파킹 가챠 재고 <small>등급별 남은 수량 조회</small></h1>
+  <div class="spacer"></div>
+  <label class="toggle"><input type="checkbox" id="autoChk" /> 30초 자동</label>
+  <span class="badge" id="liveBadge">대기</span>
+  <button class="primary" id="refreshBtn">🔄 조회</button>
+</header>
+<main>
+  <div class="meta" id="meta">불러오는 중…</div>
+  <div class="grid" id="grid"><div class="loading">불러오는 중…</div></div>
+</main>
+
+<div class="overlay" id="overlay"></div>
+<div class="sheet" id="sheet">
+  <div class="top"><h2 id="dTitle"></h2><button class="close" id="closeBtn">✕</button></div>
+  <div class="scroll" id="dBody"></div>
+</div>
+
+<script>
+const $ = (s)=>document.querySelector(s);
+const fmt = (n)=> (n==null?"-":Number(n).toLocaleString("ko-KR"));
+const esc = (s)=> String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const dday = (end)=>{ if(!end) return ""; const d=Math.ceil((new Date(end)-Date.now())/86400000); return d<0?"종료":(d===0?"오늘마감":`D-${d}`); };
+const GORDER = ["s","a","b","c","d","e","last"];
+const retCls = (r)=> r==null?"na":(r>=70?"good":(r>=50?"mid":"low"));
+
+// 목록 카드용: 1회 비용 / 기대코인 / 환원율
+function evRows(g){
+  const unit = g.priceUnit==="ticket" ? "티켓" : "원";
+  let h = `<div class="row"><span class="k">1회 비용</span><span>${fmt(g.priceOrTicket)} ${unit}</span></div>`;
+  if (g.evNote==="ticket")
+    h += `<div class="row"><span class="k">1회 기대</span><span>${fmt(g.evCoins)} 코인 <span class="badge">티켓</span></span></div>`;
+  else if (g.evNote==="special")
+    h += `<div class="row"><span class="k">1회 기대</span><span>${fmt(g.evCoins)} 코인 <span class="badge soon">단위확인</span></span></div>`;
+  else {
+    const r = g.returnRate!=null ? Math.round(g.returnRate*100) : null;
+    h += `<div class="row"><span class="k">1회 기대</span><span>${fmt(g.evCoins)} 코인≈원</span></div>`;
+    if (r!=null) h += `<div class="row"><span class="k">환원율</span><span class="ret ${retCls(r)}">${r}%</span></div>`;
+  }
+  return h;
+}
+
+// 상세용 기대값 stat 카드들
+function evStat(g){
+  const ev = g.ev; if(!ev) return "";
+  let h = `<div class="stat"><div class="v">${fmt(ev.evCoins)}</div><div class="l">1회 기대코인</div></div>`;
+  if (ev.evNote==="ticket")
+    h += `<div class="stat"><div class="v" style="color:var(--sub)">티켓</div><div class="l">티켓 가챠</div></div>`;
+  else if (ev.evNote==="special")
+    h += `<div class="stat"><div class="v" style="color:var(--warn)">확인필요</div><div class="l">단위/번들</div></div>`;
+  else if (ev.returnRate!=null){
+    const r = Math.round(ev.returnRate*100);
+    const col = r>=70?"var(--ok)":(r>=50?"var(--txt)":"var(--warn)");
+    const profit = ev.evCoins - g.priceOrTicket;
+    h += `<div class="stat"><div class="v" style="color:${col}">${r}%</div><div class="l">환원율(코인≈원)</div></div>`;
+    h += `<div class="stat"><div class="v" style="color:${profit>=0?'var(--ok)':'var(--last)'}">${profit>=0?'+':''}${fmt(profit)}</div><div class="l">1회 기대손익(원)</div></div>`;
+  }
+  return h;
+}
+
+async function loadList() {
+  const grid = $("#grid");
+  $("#liveBadge").textContent="조회중…"; $("#liveBadge").className="badge";
+  try {
+    const r = await fetch("/api/gachas");
+    if (!r.ok) throw new Error("HTTP "+r.status);
+    const { gachas=[] } = await r.json();
+    $("#meta").textContent = `활성 가챠 ${gachas.length}개 · ${new Date().toLocaleTimeString("ko-KR")} 기준`;
+    $("#liveBadge").textContent="LIVE"; $("#liveBadge").className="badge live";
+    if (!gachas.length){ grid.innerHTML='<div class="empty">현재 활성 가챠가 없습니다.</div>'; return; }
+    grid.innerHTML=""; for (const g of gachas) grid.appendChild(card(g));
+  } catch(e){
+    grid.innerHTML=`<div class="loading err">조회 실패: ${esc(e.message)}</div>`;
+    $("#liveBadge").textContent="오류"; $("#liveBadge").className="badge";
+  }
+}
+
+function card(g){
+  const s = g.grades.s, last = g.grades.last;
+  const pct = g.tot ? Math.round(g.rem/g.tot*100) : 0;
+  const dd = dday(g.endDate);
+  const el = document.createElement("div"); el.className="prog";
+  el.innerHTML = `
+    ${g.mainImage?`<img class="thumb" src="${esc(g.mainImage)}" loading="lazy" onerror="this.style.display='none'"/>`:""}
+    <div class="body">
+      <div class="tags">
+        <span class="badge cat">${esc(g.category||"")}</span>
+        ${g.isEventGacha?'<span class="badge event">이벤트</span>':""}
+        ${dd?`<span class="badge ${dd==="오늘마감"?"soon":""}">${dd}</span>`:""}
+      </div>
+      <p class="name">${esc(g.title)}${g.recommend?' <span class="rec">(강력추천)</span>':''}</p>
+      ${s?`<div class="row"><span class="k">S등급 잔여</span><span class="sgrade">${fmt(s.remaining)} / ${fmt(s.total)}</span></div>`:""}
+      ${last?`<div class="row"><span class="k">라스트원</span><span class="lastgrade">${fmt(last.remaining)} / ${fmt(last.total)}</span></div>`:""}
+      <div class="row"><span class="k">전체 잔여</span><span>${fmt(g.rem)} / ${fmt(g.tot)}</span></div>
+      ${evRows(g)}
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="row" style="margin-top:6px"><span class="k">잔여 ${pct}%</span></div>
+    </div>`;
+  el.onclick = ()=>openDetail(g.id);
+  return el;
+}
+
+async function openDetail(id){
+  $("#overlay").classList.add("show"); $("#sheet").classList.add("show");
+  $("#dTitle").textContent="불러오는 중…"; $("#dBody").innerHTML='<div class="loading">상세 조회중…</div>';
+  try{
+    const r = await fetch("/api/gacha?id="+encodeURIComponent(id));
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const { gacha } = await r.json();
+    renderDetail(gacha);
+  }catch(e){ $("#dBody").innerHTML=`<div class="loading err">상세 조회 실패: ${esc(e.message)}</div>`; }
+}
+
+function renderDetail(g){
+  $("#dTitle").textContent = g.title;
+  let html = `<div class="summary">
+    <div class="stat"><div class="v">${fmt(g.rem)}</div><div class="l">전체 잔여 / ${fmt(g.tot)}</div></div>
+    <div class="stat"><div class="v">${fmt(g.priceOrTicket)}</div><div class="l">1회 비용(${g.priceUnit==="ticket"?"티켓":"원"})</div></div>
+    ${evStat(g)}
+    <div class="stat"><div class="v">${esc(g.category||"-")}</div><div class="l">카테고리</div></div>
+    <div class="stat"><div class="v">${dday(g.endDate)||"-"}</div><div class="l">~${esc((g.endDate||"").slice(0,10))}</div></div>
+  </div>`;
+  html += `<input class="gsearch" id="cardSearch" placeholder="카드 이름 검색…" />`;
+  for (const gr of GORDER){
+    const info = g.grades[gr]; if(!info) continue;
+    const name = gr.toUpperCase();
+    const cls = gr==="s"?"S":(gr==="last"?"LAST":"N");
+    const pct = info.total? Math.round(info.remaining/info.total*100):0;
+    const col = gr==="s"?"var(--s)":(gr==="last"?"var(--last)":"var(--ok)");
+    const cards = (info.cards||[]).filter(c=>c&&c.name);
+    const left = cards.filter(c=>!c.soldOut).length;
+    html += `<div class="gradeBlock">
+      <div class="gradeTitle">
+        <span class="pill ${cls}">${name}${info.isHit?" · HIT":""}</span>
+        <span style="color:var(--sub);font-size:12px">잔여 ${fmt(info.remaining)} / ${fmt(info.total)} · ${cards.length}종 중 ${left}종 남음</span>
+        ${info.evShare!=null?`<span style="color:var(--sub);font-size:11px">· 기대기여 ${Math.round(info.evShare*100)}% (${fmt(info.evPerDraw)}코인/회)</span>`:""}
+        <span class="gbar"><i style="width:${pct}%;background:${col}"></i></span>
+      </div>`;
+    if (cards.length){
+      html += `<div class="cards">`;
+      for (const c of cards){
+        html += `<div class="citem ${c.soldOut?'sold':''}" data-name="${esc((c.name||'')+' '+(c.number||''))}">
+          ${c.soldOut?'<span class="soldtag">SOLD OUT</span>':''}
+          ${c.cardImage?`<img src="${esc(c.cardImage)}" loading="lazy" onerror="this.style.visibility='hidden'"/>`:''}
+          <div style="min-width:0">
+            <div class="n">${esc(c.name)}</div>
+            ${c.cardGrading||c.cardRating?`<div class="num">${esc([c.cardGrading,c.cardRating].filter(Boolean).join(' · '))}</div>`:''}
+            <div class="rem ${c.soldOut?'none':'has'}">${c.total!=null?`${fmt(c.remaining)}/${fmt(c.total)} 남음`:(c.soldOut?'매진':'남음')}</div>
+            ${c.coinPrice!=null?`<div class="coin">💰 ${fmt(c.coinPrice)} 코인</div>`:''}
+          </div>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+  $("#dBody").innerHTML = html;
+  const sb = $("#cardSearch");
+  if (sb) sb.oninput = ()=>{ const q=sb.value.trim().toLowerCase();
+    document.querySelectorAll("#dBody .citem").forEach(el=>{ el.style.display = (!q || el.dataset.name.toLowerCase().includes(q)) ? "" : "none"; }); };
+}
+
+function closeDetail(){ $("#overlay").classList.remove("show"); $("#sheet").classList.remove("show"); }
+$("#refreshBtn").onclick=loadList;
+$("#closeBtn").onclick=closeDetail; $("#overlay").onclick=closeDetail;
+let auto=null;
+$("#autoChk").onchange=(e)=>{ clearInterval(auto); if(e.target.checked){ auto=setInterval(loadList,30000); } };
+loadList();
+</script>
+</body>
+</html>

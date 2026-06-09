@@ -1,0 +1,37 @@
+name: gacha-return-alert
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # 10분마다 (GitHub 무료는 약간 지연될 수 있음)
+  workflow_dispatch: {}        # 수동 실행 버튼
+
+permissions:
+  contents: write              # state.json 커밋용
+
+concurrency:
+  group: gacha-alert
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run return-rate checker
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          THRESHOLDS: "90,95,100"
+        run: node alert/check.mjs
+      - name: Commit state if changed
+        run: |
+          if [ -n "$(git status --porcelain alert/state.json)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add alert/state.json
+            git commit -m "chore: update alert state [skip ci]"
+            git push
+          fi
