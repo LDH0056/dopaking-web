@@ -24,7 +24,7 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          THRESHOLDS: "90,95,100"
+          THRESHOLDS: "80"
         run: node alert/check.mjs
       - name: Commit state if changed
         run: |
