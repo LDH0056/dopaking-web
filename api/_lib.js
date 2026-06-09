@@ -190,9 +190,17 @@ export function expectedValue(stats, priceOrTicket, category) {
   let note = null;                                  // null=정상, 'ticket'=티켓가챠, 'special'=단위확인필요(번들 등)
   if (isTicket) note = "ticket";
   else if (rate != null && rate > 3) note = "special";
+  // 라스트원 제외 환원율 (1장짜리 초고가 보너스를 빼고 본 현실 환원율)
+  const lastCoins = byGrade.last || 0;
+  const lastRem = stats.last ? stats.last.remaining : 0;
+  const remNL = rem - lastRem;
+  const evCoinsNL = remNL > 0 ? (coins - lastCoins) / remNL : 0;
+  const rateNL = (!isTicket && priceOrTicket > 0) ? evCoinsNL / priceOrTicket : null;
   const share = {};
   for (const gr in byGrade) share[gr] = coins ? byGrade[gr] / coins : 0;
-  return { evCoins: Math.round(evCoins), priceUnit: isTicket ? "ticket" : "won", returnRate: rate, evNote: note, byGradeCoins: byGrade, byGradeShare: share };
+  return { evCoins: Math.round(evCoins), priceUnit: isTicket ? "ticket" : "won", returnRate: rate, evNote: note,
+    evCoinsNoLast: Math.round(evCoinsNL), returnRateNoLast: rateNL, hasLast: lastRem > 0,
+    byGradeCoins: byGrade, byGradeShare: share };
 }
 
 // 카드 목록 화면용 요약(등급별 잔여 + 강력추천 + 기대값)
@@ -223,5 +231,6 @@ export function summary(g) {
     shortDescription: g.shortDescription, grades, rem, tot,
     openRate, recommend,
     evCoins: ev.evCoins, returnRate: ev.returnRate, priceUnit: ev.priceUnit, evNote: ev.evNote,
+    returnRateNoLast: ev.returnRateNoLast, evCoinsNoLast: ev.evCoinsNoLast, hasLast: ev.hasLast,
   };
 }

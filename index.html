@@ -79,6 +79,7 @@
   .ret.mid { color:var(--txt); }
   .ret.low { color:var(--warn); }
   .ret.na { color:var(--sub); }
+  .nolast { color:var(--sub); font-weight:400; font-size:11px; }
 </style>
 </head>
 <body>
@@ -118,8 +119,10 @@ function evRows(g){
     h += `<div class="row"><span class="k">1회 기대</span><span>${fmt(g.evCoins)} 코인 <span class="badge soon">단위확인</span></span></div>`;
   else {
     const r = g.returnRate!=null ? Math.round(g.returnRate*100) : null;
+    const rNL = g.returnRateNoLast!=null ? Math.round(g.returnRateNoLast*100) : null;
+    const sub = (g.hasLast && rNL!=null && rNL!==r) ? ` <span class="nolast">(라스트원 제외 ${rNL}%)</span>` : "";
     h += `<div class="row"><span class="k">1회 기대</span><span>${fmt(g.evCoins)} 코인≈원</span></div>`;
-    if (r!=null) h += `<div class="row"><span class="k">환원율</span><span class="ret ${retCls(r)}">${r}%</span></div>`;
+    if (r!=null) h += `<div class="row"><span class="k">환원율</span><span class="ret ${retCls(r)}">${r}%${sub}</span></div>`;
   }
   return h;
 }
@@ -136,7 +139,9 @@ function evStat(g){
     const r = Math.round(ev.returnRate*100);
     const col = r>=70?"var(--ok)":(r>=50?"var(--txt)":"var(--warn)");
     const profit = ev.evCoins - g.priceOrTicket;
-    h += `<div class="stat"><div class="v" style="color:${col}">${r}%</div><div class="l">환원율(코인≈원)</div></div>`;
+    const rNL = ev.returnRateNoLast!=null ? Math.round(ev.returnRateNoLast*100) : null;
+    const nlLabel = (ev.hasLast && rNL!=null && rNL!==r) ? ` · 라스트원 제외 ${rNL}%` : "";
+    h += `<div class="stat"><div class="v" style="color:${col}">${r}%</div><div class="l">환원율(코인≈원)${nlLabel}</div></div>`;
     h += `<div class="stat"><div class="v" style="color:${profit>=0?'var(--ok)':'var(--last)'}">${profit>=0?'+':''}${fmt(profit)}</div><div class="l">1회 기대손익(원)</div></div>`;
   }
   return h;
