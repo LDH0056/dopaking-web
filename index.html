@@ -124,6 +124,11 @@ function evRows(g){
     h += `<div class="row"><span class="k">1회 기대</span><span>${fmt(g.evCoins)} 코인≈원</span></div>`;
     if (r!=null) h += `<div class="row"><span class="k">환원율</span><span class="ret ${retCls(r)}">${r}%${sub}</span></div>`;
   }
+  // 잔여 전부 구매 시 손익 (정상 가챠만 원화 표시)
+  if (g.sweepRem && g.sweepProfit!=null){
+    const sp = g.sweepProfit;
+    h += `<div class="row"><span class="k">전부구매 손익</span><span class="ret ${sp>=0?'good':'low'}">${sp>=0?'+':''}${fmt(sp)}원 <span class="nolast">(${fmt(g.sweepRem)}회)</span></span></div>`;
+  }
   return h;
 }
 
@@ -143,6 +148,18 @@ function evStat(g){
     const nlLabel = (ev.hasLast && rNL!=null && rNL!==r) ? ` · 라스트원 제외 ${rNL}%` : "";
     h += `<div class="stat"><div class="v" style="color:${col}">${r}%</div><div class="l">환원율(코인≈원)${nlLabel}</div></div>`;
     h += `<div class="stat"><div class="v" style="color:${profit>=0?'var(--ok)':'var(--last)'}">${profit>=0?'+':''}${fmt(profit)}</div><div class="l">1회 기대손익(원)</div></div>`;
+  }
+  // 잔여 전부 구매(스윕): 남은 횟수 전부 사면 드는 비용 / 얻는 코인 / 손익
+  if (ev.sweepRem){
+    const isTicket = ev.evNote==="ticket";
+    const costUnit = isTicket ? "티켓" : "원";
+    h += `<div class="stat" style="border-color:var(--accent)"><div class="v">${fmt(ev.sweepRem)}</div><div class="l">잔여 전부 구매 횟수</div></div>`;
+    h += `<div class="stat" style="border-color:var(--accent)"><div class="v">${fmt(ev.sweepCost)}</div><div class="l">전부 구매 비용(${costUnit})</div></div>`;
+    h += `<div class="stat" style="border-color:var(--accent)"><div class="v" style="color:var(--s)">${fmt(ev.sweepCoins)}</div><div class="l">전부 구매 시 획득 코인</div></div>`;
+    if (ev.sweepProfit!=null){
+      const sp = ev.sweepProfit;
+      h += `<div class="stat" style="border-color:var(--accent)"><div class="v" style="color:${sp>=0?'var(--ok)':'var(--last)'}">${sp>=0?'+':''}${fmt(sp)}</div><div class="l">전부 구매 손익(원)</div></div>`;
+    }
   }
   return h;
 }

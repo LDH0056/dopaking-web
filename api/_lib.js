@@ -198,8 +198,14 @@ export function expectedValue(stats, priceOrTicket, category) {
   const rateNL = (!isTicket && priceOrTicket > 0) ? evCoinsNL / priceOrTicket : null;
   const share = {};
   for (const gr in byGrade) share[gr] = coins ? byGrade[gr] / coins : 0;
+  // 잔여 전부 구매(스윕): 남은 횟수=rem, 비용=rem×price, 획득코인=잔여 카드 코인 총합(coins), 손익=획득−비용
+  // rem=0(매진)이면 살 게 없으므로 전부 0. EV가 손익 숨기는 케이스(ticket·special)는 원화 손익 미산출.
+  const sweepCost = rem > 0 && priceOrTicket > 0 ? rem * priceOrTicket : 0; // 티켓이면 티켓 장수
+  const sweepCoins = rem > 0 ? Math.round(coins) : 0;                       // 전부 사면 얻는 코인(≈원)
+  const sweepProfit = (rem > 0 && note == null && priceOrTicket > 0) ? sweepCoins - sweepCost : null; // 원화 손익(정상 가챠만)
   return { evCoins: Math.round(evCoins), priceUnit: isTicket ? "ticket" : "won", returnRate: rate, evNote: note,
     evCoinsNoLast: Math.round(evCoinsNL), returnRateNoLast: rateNL, hasLast: lastRem > 0,
+    sweepRem: rem, sweepCost, sweepCoins, sweepProfit,
     byGradeCoins: byGrade, byGradeShare: share };
 }
 
@@ -232,5 +238,6 @@ export function summary(g) {
     openRate, recommend,
     evCoins: ev.evCoins, returnRate: ev.returnRate, priceUnit: ev.priceUnit, evNote: ev.evNote,
     returnRateNoLast: ev.returnRateNoLast, evCoinsNoLast: ev.evCoinsNoLast, hasLast: ev.hasLast,
+    sweepRem: ev.sweepRem, sweepCost: ev.sweepCost, sweepCoins: ev.sweepCoins, sweepProfit: ev.sweepProfit,
   };
 }
